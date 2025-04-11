@@ -4,6 +4,8 @@ const { FuseV1Options, FuseVersion } = require('@electron/fuses');
 module.exports = {
   packagerConfig: {
     asar: true,
+    // Explicitly specify architectures you might build (optional but good practice)
+    arch: ['x64', 'arm64']
   },
   rebuildConfig: {},
   makers: [
@@ -11,18 +13,18 @@ module.exports = {
       name: '@electron-forge/maker-squirrel',
       config: {},
     },
-    {
-      name: '@electron-forge/maker-zip',
-      platforms: ['darwin'],
-    },
+    // {
+    //   name: '@electron-forge/maker-zip',
+    //   platforms: ['darwin'],
+    // },
     {
       name: '@electron-forge/maker-deb',
       config: {},
     },
-    {
-      name: '@electron-forge/maker-rpm',
-      config: {},
-    },
+    // {
+    //   name: '@electron-forge/maker-rpm',
+    //   config: {},
+    // },
   ],
   plugins: [
     {
@@ -64,17 +66,17 @@ module.exports = {
     }),
   ],
 
-  publishers: [
-    {
-      name: '@electron-forge/publisher-github',
-      config: {
-        repository: {
-          owner: 'DDA1O1', // <-- REPLACE THIS
-          name: 'elcetron-vite'                      // <-- REPLACE THIS (if your repo name isn't 'my-app')
-        },
-        prerelease: false, // Set to true if you want to mark it as a pre-release
-        draft: false       // Set to true if you want to create a draft release instead of publishing directly
-      }
-    }
-  ]
+  // publishers: [
+  //   {
+  //     name: '@electron-forge/publisher-github',
+  //     config: {
+  //       repository: {
+  //         owner: 'DDA1O1', // <-- REPLACE THIS
+  //         name: 'elcetron-vite'                      // <-- REPLACE THIS (if your repo name isn't 'my-app')
+  //       },
+  //       prerelease: false, // Set to true if you want to mark it as a pre-release
+  //       draft: false       // Set to true if you want to create a draft release instead of publishing directly
+  //     }
+  //   }
+  // ]
 };
