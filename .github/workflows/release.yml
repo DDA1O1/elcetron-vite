@@ -109,7 +109,7 @@ jobs:
   # Job to create the GitHub Release and upload all built artifacts
   release:
     runs-on: ubuntu-latest
-    # This job now depends on all three build jobs completing successfully
+    # Depends on all three build jobs completing successfully
     needs: [build-windows-x64, build-windows-arm64, build-linux]
     permissions:
       contents: write # Needed to create releases and upload assets
@@ -127,47 +127,68 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: windows-x64-artifact
-          path: staging/windows-x64 # Download into staging/windows-x64
+          path: staging/windows-x64
 
       # Download the artifact from the Windows ARM64 build job
       - name: Download Windows arm64 Artifact
         uses: actions/download-artifact@v4
         with:
           name: windows-arm64-artifact
-          path: staging/windows-arm64 # Download into staging/windows-arm64
+          path: staging/windows-arm64
 
       # Download the artifact from the Linux build job
       - name: Download Linux Artifacts
         uses: actions/download-artifact@v4
         with:
           name: linux-artifacts
-          path: staging/linux # Download into staging/linux
+          path: staging/linux
 
-      # List downloaded files for verification (optional)
-      - name: List downloaded files
+      # --- NEW STEPS: Rename Windows artifacts to avoid name collisions ---
+      - name: Rename Windows x64 Artifacts
+        # Renames Setup.exe and the nupkg file for the x64 build
+        # Uses standard Linux commands available on the ubuntu runner
+        # Uses || true to prevent failure if a file (e.g., RELEASES) doesn't exist, though Setup.exe and nupkg should
+        run: |
+          cd staging/windows-x64
+          PACKAGE_VERSION=$(ls *.nupkg | sed -n 's/.*-\([0-9.]*\)-full\.nupkg/\1/p')
+          if [[ -n "$PACKAGE_VERSION" ]]; then
+            mv --backup=numbered ./*-$PACKAGE_VERSION-full.nupkg ./my-app-$PACKAGE_VERSION-x64-full.nupkg || true
+            mv --backup=numbered ./my-app-$PACKAGE_VERSION\ Setup.exe ./my-app-$PACKAGE_VERSION-x64-Setup.exe || true
+            # Optional: Rename RELEASES if needed, though often identical is fine
+            # mv --backup=numbered ./RELEASES ./RELEASES-x64 || true
+          else
+            echo "Warning: Could not determine package version for x64 renaming."
+          fi
+          cd ../..
+
+      - name: Rename Windows arm64 Artifacts
+        # Renames Setup.exe and the nupkg file for the arm64 build
+        run: |
+          cd staging/windows-arm64
+          PACKAGE_VERSION=$(ls *.nupkg | sed -n 's/.*-\([0-9.]*\)-full\.nupkg/\1/p')
+          if [[ -n "$PACKAGE_VERSION" ]]; then
+            mv --backup=numbered ./*-$PACKAGE_VERSION-full.nupkg ./my-app-$PACKAGE_VERSION-arm64-full.nupkg || true
+            mv --backup=numbered ./my-app-$PACKAGE_VERSION\ Setup.exe ./my-app-$PACKAGE_VERSION-arm64-Setup.exe || true
+            # Optional: Rename RELEASES if needed
+            # mv --backup=numbered ./RELEASES ./RELEASES-arm64 || true
+          else
+            echo "Warning: Could not determine package version for arm64 renaming."
+          fi
+          cd ../..
+      # --- END OF NEW STEPS ---
+
+      # List final files in staging for verification (optional)
+      - name: List final staging files
         run: ls -R staging
 
       # Use a dedicated action to create the release and upload artifacts
       - name: Create GitHub Release and Upload Artifacts
         uses: softprops/action-gh-release@v2
         with:
-          # Use the tag that triggered the workflow as the release tag
           tag_name: ${{ github.ref_name }}
-          # Use the tag name as the release name
           name: Release ${{ github.ref_name }}
-          # Optional: Write release notes (can be generated dynamically or static)
-          # body: |
-          #   Release of version ${{ github.ref_name }}
-          #
-          #   **Downloads:**
-          #   - Windows (x64): Look for Setup.exe in the windows-x64 assets.
-          #   - Windows (ARM64): Look for Setup.exe in the windows-arm64 assets.
-          #   - Linux (DEB x64): Look for the amd64.deb file.
-          #   - Linux (DEB ARM64): Look for the arm64.deb file.
-          # Optional: Mark as pre-release if the tag looks like a pre-release
-          # prerelease: contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha')
           # Upload all files found within the staging directory and its subdirectories
+          # The renamed files will now be uploaded with their unique names
           files: staging/**/*
         env:
-          # The GITHUB_TOKEN is required by softprops/action-gh-release
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
