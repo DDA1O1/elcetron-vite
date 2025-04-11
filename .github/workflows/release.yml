@@ -1,0 +1,54 @@
+name: Release Electron App
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on pushes that create a tag matching the pattern v*.*.* (e.g., v1.0.0, v1.2.3)
+  push:
+    tags:
+      - 'v*.*.*'
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This job builds the app and publishes it to GitHub Releases
+  release:
+    # The type of runner that the job will run on
+    # We use ubuntu-latest as it's generally the fastest and can build most makers
+    # If you have specific native dependencies, you might need a matrix build (more complex)
+    runs-on: ubuntu-latest
+
+    # Grant GITHUB_TOKEN the permissions needed to create releases and upload assets
+    permissions:
+      contents: write # Required to write releases (create tags/releases, upload assets)
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # 1. Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          # Fetch all history for all tags and branches, required for Forge version detection/tagging
+          fetch-depth: 0
+
+      # 2. Sets up Node.js environment
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Use a Node version compatible with your Electron/Vite setup (e.g., 18, 20)
+          cache: 'npm' # Cache npm dependencies for faster subsequent builds
+
+      # 3. Install project dependencies
+      - name: Install Dependencies
+        run: npm ci # 'ci' is often preferred in CI for clean, reproducible installs using package-lock.json
+
+      # 4. Run the build process (creates artifacts in out/make)
+      - name: Build Application (Make)
+        run: npm run make
+
+      # 5. Run the publish process
+      #    The GITHUB_TOKEN is automatically available as a secret.
+      #    Electron Forge's GitHub publisher will automatically pick it up when run in GitHub Actions
+      #    if the 'env' context is set like below.
+      - name: Publish to GitHub Releases
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run publish
