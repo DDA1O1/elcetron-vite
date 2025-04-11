@@ -63,4 +63,18 @@ module.exports = {
       [FuseV1Options.OnlyLoadAppFromAsar]: true,
     }),
   ],
+
+  publishers: [
+    {
+      name: '@electron-forge/publisher-github',
+      config: {
+        repository: {
+          owner: 'DDA1O1', // <-- REPLACE THIS
+          name: 'elcetron-vite'                      // <-- REPLACE THIS (if your repo name isn't 'my-app')
+        },
+        prerelease: false, // Set to true if you want to mark it as a pre-release
+        draft: false       // Set to true if you want to create a draft release instead of publishing directly
+      }
+    }
+  ]
 };
