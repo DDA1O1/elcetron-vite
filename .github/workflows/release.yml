@@ -1,13 +1,16 @@
+# .github/workflows/release.yml
+
 name: Release Electron App
 
 on:
+  # Triggers the workflow on pushes that create a tag matching the pattern v*.*.* (e.g., v1.0.0, v1.2.3)
   push:
     tags:
       - 'v*.*.*'
 
 jobs:
   # Job to build for Windows x64
-  build-windows:
+  build-windows-x64:
     runs-on: windows-latest # Use a Windows runner for Squirrel/EXE build
     steps:
       - name: Checkout Repository
@@ -18,7 +21,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '20' # Or your preferred Node version
           cache: 'npm'
 
       - name: Install Dependencies
@@ -28,11 +31,40 @@ jobs:
       - name: Build Windows x64 (Make)
         run: npm run make -- --platform=win32 --arch=x64
 
-      # Upload the contents of the make output directory
-      - name: Upload Windows Artifact
+      # Upload the contents of the make output directory for x64
+      - name: Upload Windows x64 Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: windows-x64-artifact # Name of the artifact bundle
+          name: windows-x64-artifact # Unique artifact name for x64 build
+          path: out/make/**/* # Upload all files within the make output dir
+
+  # Job to build for Windows ARM64
+  build-windows-arm64:
+    runs-on: windows-latest # Still needs a Windows runner
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Or your preferred Node version
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      # Explicitly make for win32 arm64 using the configured Squirrel maker
+      - name: Build Windows arm64 (Make)
+        run: npm run make -- --platform=win32 --arch=arm64 # Target arm64
+
+      # Upload the contents of the make output directory for ARM64
+      - name: Upload Windows arm64 Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-arm64-artifact # Unique artifact name for ARM64 build
           path: out/make/**/* # Upload all files within the make output dir
 
   # Job to build for Linux x64 and arm64
@@ -47,7 +79,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '20' # Or your preferred Node version
           cache: 'npm'
 
       # Install dependencies needed for building arm64 deb on x64 runner
@@ -67,17 +99,18 @@ jobs:
       - name: Build Linux arm64 (Make)
         run: npm run make -- --platform=linux --arch=arm64
 
-      # Upload the contents of the make output directory
-      - name: Upload Linux Artifact
+      # Upload the contents of the make output directory (contains both .deb files)
+      - name: Upload Linux Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: linux-artifacts # Name of the artifact bundle (contains both x64 and arm64 debs)
-          path: out/make/**/* # Upload all files within the make output dir
+          name: linux-artifacts
+          path: out/make/**/*
 
   # Job to create the GitHub Release and upload all built artifacts
   release:
     runs-on: ubuntu-latest
-    needs: [build-windows, build-linux] # Run only after build jobs complete successfully
+    # This job now depends on all three build jobs completing successfully
+    needs: [build-windows-x64, build-windows-arm64, build-linux]
     permissions:
       contents: write # Needed to create releases and upload assets
 
@@ -85,16 +118,23 @@ jobs:
       - name: Checkout Repository # Needed to get tag info
         uses: actions/checkout@v4
 
-      # Create a directory to download artifacts into
+      # Create a directory to download all artifacts into
       - name: Create Staging Directory
         run: mkdir staging
 
-      # Download the artifact from the Windows build job
-      - name: Download Windows Artifact
+      # Download the artifact from the Windows x64 build job
+      - name: Download Windows x64 Artifact
         uses: actions/download-artifact@v4
         with:
           name: windows-x64-artifact
-          path: staging/windows # Download into staging/windows
+          path: staging/windows-x64 # Download into staging/windows-x64
+
+      # Download the artifact from the Windows ARM64 build job
+      - name: Download Windows arm64 Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-arm64-artifact
+          path: staging/windows-arm64 # Download into staging/windows-arm64
 
       # Download the artifact from the Linux build job
       - name: Download Linux Artifacts
@@ -102,6 +142,10 @@ jobs:
         with:
           name: linux-artifacts
           path: staging/linux # Download into staging/linux
+
+      # List downloaded files for verification (optional)
+      - name: List downloaded files
+        run: ls -R staging
 
       # Use a dedicated action to create the release and upload artifacts
       - name: Create GitHub Release and Upload Artifacts
@@ -111,9 +155,18 @@ jobs:
           tag_name: ${{ github.ref_name }}
           # Use the tag name as the release name
           name: Release ${{ github.ref_name }}
-          # Optional: Mark as pre-release if the tag looks like a pre-release (e.g., v1.0.0-beta.1)
-          # prerelease: contains(github.ref, '-beta') || contains(github.ref, '-alpha')
-          # Upload all files from the staging directory (includes subdirs)
+          # Optional: Write release notes (can be generated dynamically or static)
+          # body: |
+          #   Release of version ${{ github.ref_name }}
+          #
+          #   **Downloads:**
+          #   - Windows (x64): Look for Setup.exe in the windows-x64 assets.
+          #   - Windows (ARM64): Look for Setup.exe in the windows-arm64 assets.
+          #   - Linux (DEB x64): Look for the amd64.deb file.
+          #   - Linux (DEB ARM64): Look for the arm64.deb file.
+          # Optional: Mark as pre-release if the tag looks like a pre-release
+          # prerelease: contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha')
+          # Upload all files found within the staging directory and its subdirectories
           files: staging/**/*
         env:
           # The GITHUB_TOKEN is required by softprops/action-gh-release
