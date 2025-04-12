@@ -26,6 +26,23 @@
  * ```
  */
 
+import React from 'react';
 import './index.css';
 
-console.log('👋 This message is being logged by "renderer.js", included via Vite');
+function App() {
+  return (
+    <div>
+      <button
+        className="px-6 py-2 font-semibold text-white transition-colors duration-200 transform bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 active:bg-blue-800 shadow-lg hover:shadow-xl"
+        onClick={() => alert('Button clicked!')}
+      >
+        Click Me
+      </button>
+    </div>
+  );
+}
+
+export default App;
+
+
+
