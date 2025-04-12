@@ -2,7 +2,14 @@ import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 const { updateElectronApp } = require('update-electron-app');
-updateElectronApp(); // additional configuration options available
+updateElectronApp({
+  updateSource: {
+    type: UpdateSourceType.ElectronPublicUpdateService,
+    repo: 'DDA1O1/electron-vite'
+  },
+  updateInterval: '5 hour',
+  logger: require('electron-log')
+}); // additional configuration options available
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
