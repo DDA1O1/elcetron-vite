@@ -1,7 +1,8 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
-const { updateElectronApp, UpdateSourceType} = require('update-electron-app');
+import { updateElectronApp, UpdateSourceType } from 'update-electron-app';
+
 updateElectronApp({
   updateSource: {
     type: UpdateSourceType.ElectronPublicUpdateService,
