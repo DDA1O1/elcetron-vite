@@ -40,16 +40,23 @@ npm start
 ## Project Structure
 
 ```
+├── .github/
+│   └── workflows/
+│       └── release.yml    # GitHub Actions workflow for releases
 ├── src/
-│   ├── main.js        # Electron main process
-│   ├── preload.js     # Preload script
-│   ├── main.jsx       # React entry point
-│   ├── App.jsx        # Main React component
-│   └── index.css      # Global styles
+│   ├── main.js           # Electron main process
+│   ├── preload.js        # Preload script
+│   ├── main.jsx          # React entry point
+│   ├── App.jsx           # Main React component
+│   └── index.css         # Global styles
+├── .gitignore            # Git ignore configuration
+├── forge.config.js       # Electron Forge config
+├── index.html            # HTML entry point
+├── package.json          # Project dependencies and scripts
+├── package-lock.json     # Lock file for dependencies
 ├── vite.main.config.mjs      # Vite config for main process
 ├── vite.preload.config.mjs   # Vite config for preload script
-├── vite.renderer.config.mjs  # Vite config for renderer process
-└── forge.config.js          # Electron Forge config
+└── vite.renderer.config.mjs  # Vite config for renderer process
 ```
 
 ## Technologies
